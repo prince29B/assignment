@@ -120,7 +120,7 @@ jobs:
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: "Salesforce Deployment Successful"
-          to: shailendra.singh@astonous.com
+          to: prince29bhadauriya@gmail.com
           body: |
             Deployment to the target org was successful.
 
@@ -133,7 +133,7 @@ jobs:
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: "Salesforce Deployment Failed"
-          to: shailendra.singh@astonous.com
+          to: prince29bhadauriya@gmail.com
           body: |
             Deployment to the target org failed. Please check the workflow logs for details.
 
