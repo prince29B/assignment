@@ -1,18 +1,22 @@
-# Salesforce DX Project: Next Steps
+# Salesforce CI/CD Automation
 
-Now that you’ve created a Salesforce DX project, what’s next? Here are some documentation resources to get you started.
+## Branching Strategy
+- **main**: production-ready
+- **feature/**: new features
+- **bugfix/**: bug fixes
+- **hotfix/**: urgent production fixes
 
-## How Do You Plan to Deploy Your Changes?
+## CI/CD Flow
+1. PR → `main`: Triggers validation on scratch org
+2. Push to `main`: Triggers deployment to production
 
-Do you want to deploy a set of changes, or create a self-contained application? Choose a [development model](https://developer.salesforce.com/tools/vscode/en/user-guide/development-models).
+## Secrets Required
+- `SFDX_JWT_KEY`, `CLIENT_ID`, `DEVHUB_USERNAME`
+- `PROD_JWT_KEY`, `PROD_CLIENT_ID`, `PROD_USERNAME`
+- `EMAIL_USERNAME`, `EMAIL_PASSWORD`
 
-## Configure Your Salesforce DX Project
-
-The `sfdx-project.json` file contains useful configuration information for your project. See [Salesforce DX Project Configuration](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_ws_config.htm) in the _Salesforce DX Developer Guide_ for details about this file.
-
-## Read All About It
-
-- [Salesforce Extensions Documentation](https://developer.salesforce.com/tools/vscode/)
-- [Salesforce CLI Setup Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_intro.htm)
-- [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_intro.htm)
-- [Salesforce CLI Command Reference](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference.htm)
+## Tools
+- PMD
+- ESLint
+- Prettier
+- GitHub Actions

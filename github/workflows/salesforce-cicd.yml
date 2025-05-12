@@ -1,11 +1,144 @@
-name: Test PR Workflow
+name: Salesforce CI/CD
 
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
 
 jobs:
-  test:
+  validate-pr:
+    name: Validate PR (Scratch Org)
     runs-on: ubuntu-latest
+
     steps:
-      - run: echo "Hello from PR!"
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Salesforce CLI
+        run: npm install @salesforce/cli --global
+
+      - name: Authenticate to DevHub
+        env:
+          SFDX_AUTH_URL: ${{ secrets.SFDX_AUTH_URL_DEVHUB }}
+        run: |
+          echo $SFDX_AUTH_URL > ./auth-url.txt
+          sf org login sfdx-url --alias DevHub --set-default-dev-hub --sfdx-url-file ./auth-url.txt
+
+      - name: Create Scratch Org
+        run: sf org create scratch --definition-file config/project-scratch-def.json --alias ScratchOrg --wait 30 --duration-days 1 --set-default
+
+      - name: Push source to Scratch Org
+        run: sf project deploy start --target-org ScratchOrg --wait 30
+
+      - name: Run Apex Tests and Collect Coverage
+        run: sf apex run test --target-org ScratchOrg --code-coverage --result-format human --output-dir ./tests/apex --test-level RunLocalTests --wait 30
+
+      - name: Check Code Coverage Threshold
+        run: |
+          COVERAGE=$(cat ./tests/apex/test-result-*.json | grep -o '"coverage": [0-9]*' | grep -o '[0-9]*' | head -1)
+          if [ "$COVERAGE" -lt 75 ]; then
+            echo "Code coverage is below 75% ($COVERAGE%)"
+            exit 1
+          fi
+
+      - name: Run PMD (Static Code Analysis)
+        uses: pmd/pmd-github-action@v1
+        with:
+          version: '7.0.0'
+          sourcePath: 'force-app/main/default/classes'
+          rulesets: 'rulesets/apex/quickstart.xml'
+
+      - name: Run ESLint (for LWC/JS)
+        run: |
+          npm install eslint --save-dev
+          npx eslint force-app/main/default/lwc --ext .js --max-warnings 0
+
+      - name: Run Prettier (Code Formatting)
+        run: |
+          npm install prettier --save-dev
+          npx prettier --check "force-app/**/*.{cls,js,html}"
+
+      - name: Delete Scratch Org
+        if: always()
+        run: sf org delete scratch --target-org ScratchOrg --no-prompt
+
+      - name: Email Notification on Failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "Salesforce PR Validation Failed"
+          to: prince29bhadauriya@gmail.com
+          body: |
+            The PR validation failed. Please check the workflow logs for details.
+
+  deploy-prod:
+    name: Deploy to Target Org (on main)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Salesforce CLI
+        run: npm install @salesforce/cli --global
+
+      - name: Authenticate to Target Org
+        env:
+          SFDX_AUTH_URL: ${{ secrets.SFDX_AUTH_URL_TARGET }}
+        run: |
+          echo $SFDX_AUTH_URL > ./auth-url.txt
+          sf org login sfdx-url --alias TargetOrg --set-default --sfdx-url-file ./auth-url.txt
+
+      - name: Deploy to Target Org
+        run: sf project deploy start --target-org TargetOrg --test-level RunLocalTests --wait 30
+
+      - name: Run Apex Tests (Post-Deploy)
+        run: sf apex run test --target-org TargetOrg --code-coverage --result-format human --output-dir ./tests/apex --test-level RunLocalTests --wait 30
+
+      - name: Email Notification on Success
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "Salesforce Deployment Successful"
+          to: prince29bhadauriya@gmail.com
+          body: |
+            Deployment to the target org was successful.
+
+      - name: Email Notification on Failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "Salesforce Deployment Failed"
+          to: prince29bhadauriya@gmail.com
+          body: |
+            Deployment to the target org failed. Please check the workflow logs for details.
+
+      - name: Archive Logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-logs
+          path: ./tests/apex
