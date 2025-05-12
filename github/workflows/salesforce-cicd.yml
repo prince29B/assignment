@@ -8,7 +8,7 @@ on:
 
 jobs:
   validate-pr:
-    name: Validate PR (Scratch Org)
+    name: Validate PR in Scratch Org
     runs-on: ubuntu-latest
 
     steps:
@@ -53,7 +53,7 @@ jobs:
           version: '7.0.0'
           sourcePath: 'force-app/main/default/classes'
           rulesets: 'config/pmd-ruleset.xml'
-          failOnViolation: true  # Critical missing flag
+          failOnViolation: true
 
       - name: Run ESLint (for LWC/JS)
         run: |
@@ -64,6 +64,12 @@ jobs:
         run: |
           npm install prettier --save-dev
           npx prettier --check "force-app/**/*.{cls,js,html}"
+
+      - name: Archive Validation Logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-logs
+          path: ./tests/apex
 
       - name: Delete Scratch Org
         if: always()
@@ -78,7 +84,7 @@ jobs:
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: "Salesforce PR Validation Failed"
-          to: prince29bhadauriya@gmail.com
+          to: prince29bhadauriya.iitkgp.ac.in
           body: |
             The PR validation failed. Please check the workflow logs for details.
 
@@ -112,6 +118,12 @@ jobs:
       - name: Run Apex Tests (Post-Deploy)
         run: sf apex run test --target-org TargetOrg --code-coverage --result-format human --output-dir ./tests/apex --test-level RunLocalTests --wait 30
 
+      - name: Archive Deployment Logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-logs
+          path: ./tests/apex
+
       - name: Email Notification on Success
         if: success()
         uses: dawidd6/action-send-mail@v3
@@ -121,7 +133,7 @@ jobs:
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: "Salesforce Deployment Successful"
-          to: prince29bhadauriya@gmail.com
+          to: prince29bhadauriya.iitkgp.ac.in
           body: |
             Deployment to the target org was successful.
 
@@ -134,12 +146,6 @@ jobs:
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: "Salesforce Deployment Failed"
-          to: prince29bhadauriya@gmail.com
+          to: prince29bhadauriya.iitkgp.ac.in
           body: |
             Deployment to the target org failed. Please check the workflow logs for details.
-
-      - name: Archive Logs
-        uses: actions/upload-artifact@v4
-        with:
-          name: deployment-logs
-          path: ./tests/apex
