@@ -11,9 +11,8 @@
 2. Push to `main`: Triggers deployment to production
 
 ## Secrets Required
-- `SFDX_JWT_KEY`, `CLIENT_ID`, `DEVHUB_USERNAME`
-- `PROD_JWT_KEY`, `PROD_CLIENT_ID`, `PROD_USERNAME`
-- `EMAIL_USERNAME`, `EMAIL_PASSWORD`
+- `SFDX_AUTH_URL_TARGET`, `EMAIL_PASSWORD `, `EMAIL_USERNAME`
+- `SFDX_AUTH_URL_DEVHUB`
 
 ## Tools
 - PMD
