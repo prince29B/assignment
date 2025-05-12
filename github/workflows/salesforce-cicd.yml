@@ -52,7 +52,8 @@ jobs:
         with:
           version: '7.0.0'
           sourcePath: 'force-app/main/default/classes'
-          rulesets: 'rulesets/apex/quickstart.xml'
+          rulesets: 'config/pmd-ruleset.xml'
+          failOnViolation: true  # Critical missing flag
 
       - name: Run ESLint (for LWC/JS)
         run: |
